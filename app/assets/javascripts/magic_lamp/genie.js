@@ -8,10 +8,22 @@
 
   Genie.prototype = {
 
-    load: function(path) {
+    load: function() {
       this.removeFixtureContainer();
-      var fixture = this.cache[path];
       this.createFixtureContainer();
+      var fixture = '';
+      var context = this;
+
+      each(arguments, function(path) {
+        fixture += context.retrieveFixture(path);
+      });
+
+      this.fixtureContainer.innerHTML = fixture;
+      this.appendFixtureContainer();
+    },
+
+    retrieveFixture: function(path) {
+      var fixture = this.cache[path];
 
       if (!fixture && this.cacheOnly) {
         throw new Error('The fixture "' + path + '" was not preloaded. Is the fixture registered? Call `MagicLamp.fixtureNames()` to see what is registered.');
@@ -19,9 +31,7 @@
         var xhr = this.xhrRequest(getPath() + '/' + path);
         this.cache[path] = fixture = xhr.responseText;
       }
-
-      this.fixtureContainer.innerHTML = fixture;
-      this.appendFixtureContainer();
+      return fixture;
     },
 
     preload: function() {
@@ -39,9 +49,9 @@
         }
       }
       var sortedNames = names.sort();
-      for (var i = 0; i < sortedNames.length; i++) {
-        console.log(sortedNames[i]);
-      };
+      each(sortedNames, function(name) {
+        console.log(name);
+      });
 
       return sortedNames;
     },
@@ -95,6 +105,12 @@
   function remove(node) {
     var parentNode = node.parentNode;
     parentNode && parentNode.removeChild(node);
+  }
+
+  function each(collection, callback) {
+    for (var i = 0; i < collection.length; i++) {
+      callback(collection[i]);
+    };
   }
 
   function newXhr() {

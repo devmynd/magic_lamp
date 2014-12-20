@@ -48,29 +48,25 @@ describe('MagicLamp', function() {
     });
 
     afterEach(function() {
-      _(['load', 'preload', 'clean']).each(function(method) {
+      _(['load', 'loadRaw', 'loadJSON', 'clean']).each(function(method) {
         delete window[method];
       });
     });
 
     it('puts #load on window', function() {
-      expect(window.load).to.be.a('function');
-    });
-
-    it('binds #load', function() {
-      stub(subject, 'load', true);
-      load('orders/foo');
-      expect(subject.load).to.have.been.calledWith('orders/foo');
+      expect(window.load).to.equal(subject.load);
     });
 
     it('puts #clean on window', function() {
-      expect(window.clean).to.be.a('function');
+      expect(window.clean).to.equal(subject.clean);
     });
 
-    it('binds #clean', function() {
-      stub(subject, 'clean', true);
-      clean();
-      expect(subject.clean).to.have.been.calledOnce;
+    it('puts #loadRaw on window', function() {
+      expect(window.loadRaw).to.equal(subject.loadRaw);
+    });
+
+    it('puts #loadJSON on window', function() {
+      expect(window.loadJSON).to.equal(subject.loadJSON);
     });
   });
 
@@ -78,15 +74,58 @@ describe('MagicLamp', function() {
     beforeEach(function() {
       subject.initialize();
       stub(subject.genie, 'load', true);
-      subject.load('foo', 'bar', 'baz');
+      var dummy =  { load: subject.load };
+      dummy.load('foo', 'bar', 'baz');
     });
 
     afterEach(function() {
       delete subject.genie;
     });
 
-    it('passes through to its genie instance', function() {
+    it('passes through to its genie instance (and is bound)', function() {
       expect(subject.genie.load).to.have.been.calledWith('foo', 'bar', 'baz');
+    });
+  });
+
+  describe('#loadRaw', function() {
+    var dummy;
+    var value;
+
+    beforeEach(function() {
+      subject.initialize();
+      value = 'the fixture';
+      stub(subject.genie, 'retrieveFixture', value);
+      dummy = { loadRaw: subject.loadRaw };
+    });
+
+    afterEach(function() {
+      delete subject.genie;
+    });
+
+    it('calls through to its genie\'s #retrieveFixture  (and is bound)', function() {
+      expect(dummy.loadRaw('foo')).to.equal(value);
+      expect(subject.genie.retrieveFixture).to.have.been.calledWith('foo');
+    });
+  });
+
+  describe('#loadJSON', function() {
+    var json;
+    var dummy;
+
+    beforeEach(function() {
+      json = { foo: 'bar' };
+      subject.initialize();
+      dummy = { loadJSON: subject.loadJSON };
+      stub(subject, 'loadRaw', JSON.stringify(json));
+    });
+
+    afterEach(function() {
+      delete subject.genie;
+    });
+
+    it('returns the parsed JSON from the fixture (and is bound)', function() {
+      expect(dummy.loadJSON('foo')).to.be.like(json);
+      expect(subject.loadRaw).to.have.been.calledWith('foo');
     });
   });
 
@@ -110,14 +149,15 @@ describe('MagicLamp', function() {
     beforeEach(function() {
       subject.initialize();
       stub(subject.genie, 'removeFixtureContainer', true);
-      subject.clean();
+      var dummy = { clean: subject.clean };
+      dummy.clean();
     });
 
     afterEach(function() {
       delete subject.genie;
     });
 
-    it('calls removeFixtureContainer on its genie instance', function() {
+    it('calls removeFixtureContainer on its genie instance (and is bound)', function() {
       expect(subject.genie.removeFixtureContainer).to.have.been.calledOnce;
     });
   });
@@ -226,6 +266,21 @@ describe('MagicLamp', function() {
 
       subject.load('arbitrary/orders/admin_extending');
       expect(testFixtureContainer().innerHTML).to.equal('Stevenson\nPaulson\n');
+    });
+
+    it('can load multiple fixtures', function() {
+      subject.load('arbitrary/orders/admin_extending', 'orders/foo');
+      expect(testFixtureContainer().innerHTML).to.equal('Stevenson\nPaulson\nfoo\n');
+    });
+
+    it('can load JSON', function() {
+      var json = subject.loadJSON('hash_to_jsoned');
+      expect(json).to.be.like({ foo: 'bar' });
+    });
+
+    it('can load strings', function() {
+      var string = subject.loadRaw('just_some_string');
+      expect(string).to.equal("I'm a super awesome string");
     });
   });
 });
